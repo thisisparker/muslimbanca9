@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import json, os, requests, yaml
+import json, os, requests, time, yaml
 from bs4 import BeautifulSoup
 from documentcloud import DocumentCloud
 from io import BytesIO
@@ -33,51 +33,22 @@ def set_documentcloud(config):
     dc_pw = config['documentcloud_pw']
     return DocumentCloud(dc_user,dc_pw)
 
-def twitter_upload(image_list):
+def twitter_upload(twitter, image_list):
     media_ids = []
 
-# Debug print statement
-#    print("Here's the list I'm going to try " + str(image_list))
-
     for image in image_list:
-        res = requests.get(image)
-        res.raise_for_status()
+        try:
+            res = requests.get(image)
+            res.raise_for_status()
 
-# Another debug print statement
-#        print("Uploading " + image)
+            uploadable = BytesIO(res.content)
 
-        uploadable = BytesIO(res.content)
-
-        response = twitter.upload_media(media=uploadable)
-        media_ids.append(response['media_id'])
-
-# One more debug print statement
-#    print("Media IDs: " + str(media_ids))
+            response = twitter.upload_media(media=uploadable)
+            media_ids.append(response['media_id'])
+        except:
+            pass
 
     return media_ids
-
-# Deprecated image fetching code, to be replaced with
-# above technique once I get it working
-
-#def get_image(url):
-#    pdf = requests.get(url)
-#    pdf.raise_for_status()
-
-#    all_pages = image.Image(blob=pdf.content)
-#    single = all_pages.sequence[0]
-#    image_io = BytesIO()
-
-#    with image.Image(single) as i:
-#        i.format = 'png'
-#        i.background_color = color.Color('white')
-#        i.alpha_channel = 'remove'
-#        i.save(image_io)
-
-#    image_io.seek(0)
-
-#    return image_io
-
-# End deprecated code
 
 def shorten_name(name):
     if len(name) > 95:
@@ -139,10 +110,17 @@ def main():
                         published_url=item['url'],
                         access='public',
                         project="31541-Washington-v-Trump-Muslim-Ban-9th-Circuit")
+                    doc = dc.documents.get(doc.id)
+
+                    while doc.access != 'public':
+                        doc = dc.documents.get(doc.id)
+                        time.sleep(1)
+
                     dc_url = doc.canonical_url
-                    dc_images = doc.normal_image_url_list
-#                    if len(dc_images) <= 4:
-#                        media_ids = twitter_upload(dc_images)
+                    if doc.pages <= 4:
+                        dc_images = doc.normal_image_url_list
+                        media_ids = twitter_upload(twitter,
+                            dc_images)
                     status = ("New docket entry! " + short_name +
                         " " + dc_url)
 
