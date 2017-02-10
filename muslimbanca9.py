@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import json, os, requests, time, yaml
+import json, os, requests, time, urllib, yaml
 from bs4 import BeautifulSoup
 from documentcloud import DocumentCloud
 from io import BytesIO
@@ -87,7 +87,8 @@ def main():
         link = cells[1].find('a')
         if link == None:
             continue
-        newrow['url'] = link.get('href')
+        newrow['url'] = urllib.parse.urljoin("http://",
+            link.get('href'))
         newrow['name'] = cells[1].get_text()
 
         table.append(newrow)
@@ -104,6 +105,8 @@ def main():
                 media_ids = []
                 short_name = shorten_name(item['name'])
 
+                
+
                 if item['url'][-4:].lower() == ".pdf":
                     doc = dc.documents.upload(item['url'],
                         title=item['name'],
@@ -114,7 +117,7 @@ def main():
 
                     while doc.access != 'public':
                         doc = dc.documents.get(doc.id)
-                        time.sleep(1)
+                        time.sleep(5)
 
                     dc_url = doc.canonical_url
                     if doc.pages <= 4:
