@@ -75,6 +75,7 @@ def main():
     div = soup.find(id="ci_pe")
     rows = div.findAll("tr")[1:]
     sanrows = [r for r in rows if r.get_text(strip=True)]
+    sanrows.reverse()
 
     table = list()
 
@@ -97,6 +98,9 @@ def main():
         with open(saved_path,"r") as f:
             saved_table = json.load(f)
 
+        with open(saved_path,"w") as f:
+            json.dump(table,f)
+
         for item in table:
             saved_item = next((s for s in saved_table 
                 if s['url'] == item['url']),None)
@@ -104,7 +108,6 @@ def main():
             if saved_item == None:
                 media_ids = []
                 short_name = shorten_name(item['name'])
-
                 
 
                 if item['url'][-4:].lower() == ".pdf":
@@ -133,9 +136,6 @@ def main():
 
                 twitter.update_status(status=status,
                     media_ids=media_ids)
-
-    with open(saved_path,"w") as f:
-        json.dump(table,f)
 
 if __name__ == "__main__":
     main()
